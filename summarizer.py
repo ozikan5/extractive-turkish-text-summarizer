@@ -1,7 +1,10 @@
 import re
 from collections import defaultdict
+from sklearn.feature_extraction.text import TfidfVectorizer
+import numpy as np
 
-TURKISH_STOPWORDS = {'ve', 'bu', 'de', 'da', 'ama', 'çok', 'şu', 'bir', 'ile', 'gibi'}
+TURKISH_STOPWORDS = ['bir', 'ile', 've', 'de', 'ama', 'bu', 'çok', 'da', 'gibi', 'şu']
+
 
 # Split the sentences in the text 
 def sentence_tokenizer(text):
@@ -43,17 +46,26 @@ text = file.read()
 
 # Tokenize sentences and remove unnecessary connection words for clarity
 sentences = sentence_tokenizer(text)
-tokenized_sentences = [turkish_word_tokenizer(s) for s in sentences]
 
-filtered_tokens = [word for word in tokens if word not in TURKISH_STOPWORDS]
+vectorizer = TfidfVectorizer(
+    tokenizer=turkish_word_tokenizer,
+    stop_words=TURKISH_STOPWORDS,
+    lowercase=True
+)
+
+tfidf_matrix = vectorizer.fit_transform(sentences)  # shape: (num_sentences, num_words)
+
+
+sentence_scores = {}
+
+# Sum TF-IDF weights per sentence (row-wise sum)
+for idx, sentence in enumerate(sentences):
+    score = tfidf_matrix[idx].sum()
+    sentence_scores[sentence] = score
 
 # Generate frequency table and get the most important sentences for the summary
-freq_table = build_frequency_table_from_tokens(tokenized_sentences)
-sentence_scores = score_sentences_from_tokens(sentences, tokenized_sentences, freq_table)
 summary = get_summary(sentences, sentence_scores, top_n=2)
-
 print("Özet:\n", summary)
-
 
 
 
